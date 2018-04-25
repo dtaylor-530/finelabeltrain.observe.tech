@@ -1,0 +1,102 @@
+var ui_disabled = 0;
+
+
+function ui_canresize()
+{
+    return !$("#annotateoptionsresize").attr("checked"); 
+}
+
+function ui_areboxeshidden()
+{
+    return $("#annotateoptionshideboxes").attr("checked");
+}
+
+
+
+function ui_iskeyframe(frame, job)
+{
+    return frame == job.stop || (frame - job.start) % job.skip == 0;
+}
+
+function ui_snaptokeyframe(job, player)
+{
+    if (job.skip > 0 && !ui_iskeyframe(player.frame, job))
+    {
+        console.log("Fixing slider to key frame");
+        var remainder = (player.frame - job.start) % job.skip;
+        if (remainder > job.skip / 2)
+        {
+            player.seek(player.frame + (job.skip - remainder));
+        }
+        else
+        {
+            player.seek(player.frame - remainder);
+        }
+    }
+}
+
+
+
+function ui_loadprevious(job, objectui)
+{
+    var overlay = $('<div id="turkic_overlay"></div>').appendTo("#container");
+    var note = $("<div id='submitdialog'>One moment...</div>").appendTo("#container");
+
+    server_request("getboxesforjob", [job.jobid], function(data) {
+        overlay.remove();
+        note.remove();
+
+        for (var i in data)
+        {
+            objectui.injectnewobject(data[i]["label"],
+                                     data[i]["boxes"],
+                                     data[i]["attributes"]);
+        }
+    });
+}
+
+
+
+function ui_closeinstructions()
+{
+    console.log("Popdown instructions");
+    $("#turkic_overlay").remove();
+    $("#instructionsdialog").remove();
+    eventlog("instructions", "Popdown instructions");
+
+    ui_enable();
+}
+
+function ui_disable()
+{
+    if (ui_disabled++ == 0)
+    {
+        $("#newobjectbutton").button("option", "disabled", true);
+        $("#playbutton").button("option", "disabled", true);
+        $("#rewindbutton").button("option", "disabled", true);
+        $("#submitbutton").button("option", "disabled", true);
+        $("#playerslider").slider("option", "disabled", true);
+
+        console.log("Disengaged UI");
+    }
+
+    console.log("UI disabled with count = " + ui_disabled);
+}
+
+function ui_enable()
+{
+    if (--ui_disabled == 0)
+    {
+        $("#newobjectbutton").button("option", "disabled", false);
+        $("#playbutton").button("option", "disabled", false);
+        $("#rewindbutton").button("option", "disabled", false);
+        $("#submitbutton").button("option", "disabled", false);
+        $("#playerslider").slider("option", "disabled", false);
+
+        console.log("Engaged UI");
+    }
+
+    ui_disabled = Math.max(0, ui_disabled);
+
+    console.log("UI disabled with count = " + ui_disabled);
+}
